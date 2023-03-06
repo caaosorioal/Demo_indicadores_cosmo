@@ -24,7 +24,7 @@ cols_x = [
 
 # Nombres para etiquetas
 nombres = {
-    '%pagos_sin_becas': 'Pagos sin becas',
+    '%pagos_sin_becas': '% Pagos sin becas',
     'ocupacion': '% Ocupación',
     'Matriculados': 'Número Matriculados',
     'p_welbin': 'Indicador Welbin',
