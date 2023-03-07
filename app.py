@@ -51,7 +51,7 @@ col1, col2 = st.columns(2)
 
 # Mostrar los sliders de x
 with col1:
-    st.header('Indicadores de aprendizaje')
+    st.header('Indicadores de aprendizaje y ambiente')
     # Para cada una de las columnas de x, crear un slider
     pesos_x = {}
     for col in cols_x:
