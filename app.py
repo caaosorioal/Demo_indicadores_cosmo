@@ -12,7 +12,8 @@ df = pd.read_csv('data.csv', sep = ';', encoding = 'latin-1')
 cols_y = [
     '%pagos_sin_becas',
     'ocupacion',
-    'Matriculados'
+    'Matriculados',
+    'matriculados_mentores'
 ]
 
 cols_x = [
@@ -29,8 +30,12 @@ nombres = {
     'p_welbin': 'Indicador Welbin',
     'ambiente_escolar_empleados': 'Ambiente escolar empleados',
     'ambiente_escolar_familias': 'Ambiente escolar familias',
-    'promedio_linea_base': 'Promedio línea base'
+    'promedio_linea_base': 'Promedio línea base',
+    'matriculados_mentores' : 'Relación matriculados/mentores'
 }
+
+# Convertir la columna de "Año de apertura" en categórica
+df['Año de apertura'] = df['Año de apertura'].astype(str)
 
 # Normalizar todas las columnas entre 0 y 1 usando la función sigmoide
 def sigmoid(x):
@@ -47,7 +52,7 @@ df[cols_x] = df[cols_x].apply(lambda x: (x - x.min()) / (x.max() - x.min()))
 df[cols_y] = df[cols_y].apply(lambda x: (x - x.min()) / (x.max() - x.min()))
 
 # Crear dos columnas, una para los sliders de x y otra para los sliders de y
-col1, col2 = st.columns(2)
+col1, col2 = st.columns(2, gap = 'large')
 
 # Mostrar los sliders de x
 with col1:
@@ -56,7 +61,7 @@ with col1:
     pesos_x = {}
     for col in cols_x:
         st.text(nombres[col])
-        pesos_x[col] = st.slider(col, min_value = 0.1, max_value = 1.0, value = 0.5, step = 0.05, label_visibility='collapsed')
+        pesos_x[col] = st.slider(col, min_value = 0.1, max_value = 1.0, value = 0.5, step = 0.01, label_visibility='collapsed')
 
 # Mostrar los sliders de y
 with col2:
@@ -65,7 +70,7 @@ with col2:
     pesos_y = {}
     for col in cols_y:
         st.text(nombres[col])
-        pesos_y[col] = st.slider(col, min_value = 0.1, max_value = 1.0, value = 0.5, step = 0.05, label_visibility='collapsed')
+        pesos_y[col] = st.slider(col, min_value = 0.1, max_value = 1.0, value = 0.5, step = 0.01, label_visibility='collapsed')
 
 # Crear un diagrama de dispersión con la suma ponderada en x, y utilizando plotly
 import plotly.graph_objects as go
@@ -78,34 +83,51 @@ df['x'] = df[cols_x].mul(softmax(list(pesos_x.values())), axis = 1).sum(axis = 1
 df['y'] = df[cols_y].mul(softmax(list(pesos_y.values())), axis = 1).sum(axis = 1)
 
 # Crear columna dummy para tamaño
-df['size'] = 20
+df['size'] = 19
 
-# Crear el diagrama de dispersión con plotly pero no usando plotly.express
-# fig = go.Figure(
-#     data = go.Scatter(
-#     x = df['x'], 
-#     y = df['y'], 
-#     mode = 'markers', 
-#     marker = dict(size = 16, color = df['Matriculados'], colorscale = 'Viridis', showscale = False, opacity = 0.8),
-#     showlegend = True),
-#     layout_yaxis_range=[0,1],
-#     layout_xaxis_range=[0,1]
-# )
+# Seleccionar el tipo de gráfico
+tipo_grafico = st.selectbox('Detalles del gráfico', ['Con año de apertura', 'Sin año de apertura'], index = 1)
 
-fig = px.scatter(
+if tipo_grafico == 'Con año de apertura':
+    fig = px.scatter(
+        df,
+        x = 'x',
+        y = 'y',
+        size = 'size',
+        text = 'colegio',
+        color = 'Año de apertura',
+        color_discrete_sequence = px.colors.qualitative.Set2,
+    )
+
+    fig.update_traces(
+        textposition = 'top center',
+        textfont_size = 11,
+        textfont_color = 'black',
+        marker = dict(
+            opacity = 0.8,
+            size = 22,
+            line = dict(
+                width = 0.6,
+                color = 'black'
+            )
+        )
+    )
+else:
+    fig = px.scatter(
     df,
     x = 'x',
     y = 'y',
     color = 'colegio',
     size = 'size',
-
 )
+
 
 # Adicionar la leyenda para ver los colegios
 fig.update_layout(
     title = 'Matriz de indicadores',
     xaxis_title = 'Indicadores de aprendizaje',
-    yaxis_title = 'Indicadores de gestión'
+    yaxis_title = 'Indicadores de gestión',
+    legend_title = 'Colegio',
 )
 
 # Colocar el eje y siempre entre 0 y 1
