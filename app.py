@@ -19,8 +19,10 @@ cols_y = [
 cols_x = [
     'p_welbin',
     'ambiente_escolar_familias',
-    'promedio_linea_base'
+    'promedio_linea_base',
+    'p_competencias'
 ]
+
 
 # Nombres para etiquetas
 nombres = {
@@ -31,7 +33,8 @@ nombres = {
     'ambiente_escolar_empleados': 'Ambiente escolar empleados',
     'ambiente_escolar_familias': 'Ambiente escolar familias',
     'promedio_linea_base': 'Promedio línea base',
-    'matriculados_mentores' : 'Relación matriculados/mentores'
+    'matriculados_mentores' : 'Relación matriculados/mentores',
+    'p_competencias' : 'Promedio competencias ciudadanas'
 }
 
 # Convertir la columna de "Año de apertura" en categórica
@@ -41,15 +44,27 @@ df['Año de apertura'] = df['Año de apertura'].astype(str)
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
-def softmax(x_):
+def softmax_(x_):
     x = np.array(x_)
     return np.exp(x) / np.sum(np.exp(x), axis = 0)
 
+def softmax(x_):
+    x = np.array(x_)
+    if np.sum(x) == 1:
+        return x
+    soft = x / np.sum(x, axis = 0)  
+    return soft
+
+def normalize(x):
+    if (x.max() <= 1) and (x.min() >= 0):
+        return x
+    return (x - x.min()) / (x.max() - x.min())
+
 # Normalizar las columnas de x entre 0 y 1 usando MinMaxScaler
-df[cols_x] = df[cols_x].apply(lambda x: (x - x.min()) / (x.max() - x.min()))
+df[cols_x[0:2]] = df[cols_x[0:2]].apply(lambda x: (x - x.min()) / (x.max() - x.min()))
 
 # Normalizar las columnas de y entre 0 y 1 usando MinMaxScaler
-df[cols_y] = df[cols_y].apply(lambda x: (x - x.min()) / (x.max() - x.min()))
+df[['Matriculados', 'matriculados_mentores']] = df[['Matriculados', 'matriculados_mentores']].apply(lambda x: (x - x.min()) / (x.max() - x.min()))
 
 # Crear dos columnas, una para los sliders de x y otra para los sliders de y
 col1, col2 = st.columns(2, gap = 'large')
@@ -61,7 +76,7 @@ with col1:
     pesos_x = {}
     for col in cols_x:
         st.text(nombres[col])
-        pesos_x[col] = st.slider(col, min_value = 0.1, max_value = 1.0, value = 0.5, step = 0.01, label_visibility='collapsed')
+        pesos_x[col] = st.slider(col, min_value = 0.0, max_value = 1.0, value = 0.5, step = 0.01, label_visibility='collapsed')
 
 # Mostrar los sliders de y
 with col2:
@@ -70,7 +85,7 @@ with col2:
     pesos_y = {}
     for col in cols_y:
         st.text(nombres[col])
-        pesos_y[col] = st.slider(col, min_value = 0.1, max_value = 1.0, value = 0.5, step = 0.01, label_visibility='collapsed')
+        pesos_y[col] = st.slider(col, min_value = 0.0, max_value = 1.0, value = 0.5, step = 0.01, label_visibility='collapsed')
 
 # Crear un diagrama de dispersión con la suma ponderada en x, y utilizando plotly
 import plotly.graph_objects as go
@@ -84,6 +99,9 @@ df['y'] = df[cols_y].mul(softmax(list(pesos_y.values())), axis = 1).sum(axis = 1
 
 # Crear columna dummy para tamaño
 df['size'] = 19
+
+# Filtrar los datos que tengan valores
+df = df[(df['x'] > 0) & (df['y'] > 0)]
 
 # Seleccionar el tipo de gráfico
 tipo_grafico = st.selectbox('Detalles del gráfico', ['Con año de apertura', 'Sin año de apertura'], index = 1)
@@ -105,7 +123,7 @@ if tipo_grafico == 'Con año de apertura':
         textfont_color = 'black',
         marker = dict(
             opacity = 0.8,
-            size = 22,
+            size = 30,
             line = dict(
                 width = 0.6,
                 color = 'black'
